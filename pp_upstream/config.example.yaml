@@ -1,0 +1,16 @@
+rest:
+  host: localhost
+  port: 80
+  user: admin
+  password: "12345678"
+  cache_port: 80
+
+data:
+  path: /opt/otp/python_computing_node/commands/upstream_venv/lib/python3.9/site-packages/upstream_viz_lib/data/
+  html: ./html
+
+pandarallel:
+  n_cores: 4
+
+logs:
+  path: ./logs/application.log
