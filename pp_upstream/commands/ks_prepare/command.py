@@ -44,11 +44,29 @@ class DataframeGraph:
         for key, value in object_primitive_map.items():
             self.primitive_object_map[value] = key
 
+    def propagate_disabled_property_to_pipes(self):
+        """
+        Assume that ksolver graph edges is datacad pipe nodes only, and ksolver graph nodes is remain datacad nodes.
+        If we remove a ksolver graph node, we also have to remove all its edges
+
+        So, if node with property disabled == True is a pipe - do nothing
+        If it is not a pipe - propagate property disabled = True to all its adjacent nodes - pipes
+        """
+        node_ids = list(self.df.index)
+        pipe_ids = self._get_pipes_ids(node_ids)
+        disabled_ids = self._filter_node_ids_by_prop_value(node_ids, 'disabled', True)
+        for disabled_node_id in set(disabled_ids) - set(pipe_ids):
+            for adj_pipe_id in self.adjacent_nodes(disabled_node_id):
+                self._set_node_property(adj_pipe_id, 'disabled', True)
+
     def delete_disabled_nodes(self):
         """
         Removes all nodes in graph with property disabled = True
         If rm_edges=True removes all source and target edges
+
+        Also have to disable all adjancent nodes first
         """
+        self.propagate_disabled_property_to_pipes()
         self.delete_nodes('disabled', True)
 
     def delete_nodes(self, property_name, value, equal=True):
@@ -203,12 +221,25 @@ class DataframeGraph:
             node_ids_list
         )
 
+    def _filter_node_ids_by_prop_value(self, node_ids_list: list, prop_name: str, value):
+        return filter(
+            lambda node_id: self._get_node_property(node_id, prop_name) == value,
+            node_ids_list
+        )
+
     def _get_node_property(self, node_id: str, prop_name: str):
         props = self._get_node_properties(node_id)
         if prop_name in props and 'value' in props[prop_name]:
             return props[prop_name]['value']
         else:
             return None
+
+    def _set_node_property(self, node_id: str, prop_name: str, value):
+        props = self._get_node_properties(node_id)
+        if prop_name in props :
+            props[prop_name]['value'] = value
+        else:
+            props[prop_name] = dict(value=value)
 
     def _get_node_properties(self, node_id):
         return self.node_property[node_id]
